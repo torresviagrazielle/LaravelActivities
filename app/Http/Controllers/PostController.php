@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\User;
+use App\Models\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\Controller;
@@ -20,8 +23,10 @@ class PostController extends Controller
     public function index()
     {
         //
-        $posts = \App\Models\Post::get();
-        return view('posts.index', compact('posts'));
+        $user = User::find(Auth::id()); 
+        $posts = $user->posts()->orderBy('created_at','desc')->get();
+        $count = $user->posts()->where('title','!=','')->count();
+        return view('posts.index', compact('posts', 'count'));
     }
 
     /**
@@ -69,13 +74,17 @@ class PostController extends Controller
         $post->title = $request->title;
         $post->description = $request->description;
         $post->img = $filenameToStore;
-        $post->save();
+        $post->user_id = auth()->user()->id;
 
-        if ($post->save()){
-            return redirect('/posts')->with('status','Sucessfully save');
+        //if ($post->save()){
+        //    return redirect('/posts')->with('status','Sucessfully save');
+        //}
+
+        if($post->save()){
+            $message = "Successfully save";
         }
 
-        return redirect('/posts');
+        //return redirect('/posts');
 
     }
 
@@ -88,7 +97,10 @@ class PostController extends Controller
     public function show(Post $post)
     {
         //
-        return view('posts.show', compact('post'));
+        //return view('posts.show', compact('post'));
+        $post = Post::find($post->id);
+        $comments = $post->comments;
+        return view('posts.show', compact('post', 'comments'));
     }
 
     /**
@@ -100,7 +112,10 @@ class PostController extends Controller
     public function edit(Post $post)
     {
         //
-        return view('posts.edit', compact('post'));
+        $post = Post::find($post->id);
+        $comments = $post->comments;
+        $post->user_id = auth()->user()->id;
+        return view('posts.show', compact('post','comments'));
     }
 
     /**
@@ -136,6 +151,7 @@ class PostController extends Controller
         $post = \App\Models\Post::find($id);
         $post->title = $request->title;
         $post->description = $request->description;
+        $post->user_id = auth()->user()->id;
         $post->save();
 
         return redirect('/posts');
